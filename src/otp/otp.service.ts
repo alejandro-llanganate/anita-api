@@ -32,15 +32,18 @@ export class OtpService {
   }
 
   generateOtp(): string {
-    // Devuelve un OTP disponible y lo elimina de la lista
+    // Devuelve un OTP disponible (no lo elimina)
     const [otp] = this.validOtps;
     if (!otp) throw new Error('No hay OTPs disponibles');
-    this.validOtps.delete(otp);
     return otp;
   }
 
   validateOtp(code: string): boolean {
-    // Recorre la lista quemada y valida si el código existe
-    return this.validOtps.has(code);
+    // Si el código existe, lo elimina y retorna true (solo puede usarse una vez)
+    if (this.validOtps.has(code)) {
+      this.validOtps.delete(code);
+      return true;
+    }
+    return false;
   }
 }
