@@ -62,13 +62,13 @@ export class OtpService implements OnModuleInit {
   }
 
   async resetPassword(email: string, newPassword: string): Promise<void> {
-    // Buscar el usuario por email
-    const { data: user, error: userError } = await this.supabase
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .single();
-    if (userError || !user) {
+    // Buscar el usuario por email usando la API de autenticación
+    const { data, error: userError } = await this.supabase.auth.admin.listUsers();
+    if (userError) {
+      throw new Error('Error buscando usuarios: ' + userError.message);
+    }
+    const user = data?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    if (!user) {
       throw new Error('Usuario no encontrado');
     }
     // Actualizar solo la contraseña
