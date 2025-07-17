@@ -6,6 +6,11 @@ class ValidateOtpDto {
   code: string;
 }
 
+class ResetPasswordDto {
+  email: string;
+  newPassword: string;
+}
+
 @ApiTags('otp')
 @Controller('otp')
 export class OtpController {
@@ -27,5 +32,35 @@ export class OtpController {
   validateOtp(@Body() body: ValidateOtpDto) {
     const valid = this.otpService.validateOtp(body.code);
     return { valid };
+  }
+
+  /**
+   * Reset de contraseña de usuario usando Supabase.
+   *
+   * Este endpoint permite cambiar la contraseña de un usuario registrado en Supabase.
+   *
+   * Ejemplo de request:
+   * {
+   *   "email": "usuario@email.com",
+   *   "newPassword": "nueva123"
+   * }
+   *
+   * Respuestas:
+   * 200: { success: true }
+   * 400: { success: false, error: "Usuario no encontrado" }
+   * 400: { success: false, error: "Error actualizando usuario: ..." }
+   */
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Reset de contraseña de usuario usando Supabase' })
+  @ApiBody({ type: ResetPasswordDto, examples: { ejemplo: { value: { email: 'user@email.com', newPassword: 'nueva123' } } } })
+  @ApiResponse({ status: 200, description: 'Contraseña reseteada correctamente', schema: { example: { success: true } } })
+  @ApiResponse({ status: 400, description: 'Error al resetear contraseña', schema: { example: { success: false, error: 'Mensaje de error' } } })
+  async resetPassword(@Body() body: ResetPasswordDto) {
+    try {
+      await this.otpService.resetPassword(body.email, body.newPassword);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
   }
 }

@@ -1,8 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import * as process from 'process';
 
 @Injectable()
-export class OtpService {
+export class OtpService implements OnModuleInit {
   private readonly validOtps: Set<string>;
+  private supabase: SupabaseClient;
 
   constructor() {
     // Lista quemada de 100 códigos únicos de 6 dígitos
@@ -29,6 +32,17 @@ export class OtpService {
       '888990', '899091', '909192', '919293', '929394',
       '939495', '949596', '959697', '969798', '979899'
     ]);
+    // Supabase se inicializa en onModuleInit
+  }
+
+  async onModuleInit() {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      console.error('Faltan variables de entorno SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY');
+      throw new Error('Faltan variables de entorno SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY');
+    }
+    this.supabase = createClient(url, key);
   }
 
   generateOtp(): string {
@@ -45,5 +59,24 @@ export class OtpService {
       return true;
     }
     return false;
+  }
+
+  async resetPassword(email: string, newPassword: string): Promise<void> {
+    // Buscar el usuario por email
+    const { data: user, error: userError } = await this.supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .single();
+    if (userError || !user) {
+      throw new Error('Usuario no encontrado');
+    }
+    // Actualizar solo la contraseña
+    const { error: updateError } = await this.supabase.auth.admin.updateUserById(user.id, {
+      password: newPassword
+    });
+    if (updateError) {
+      throw new Error('Error actualizando usuario: ' + updateError.message);
+    }
   }
 }
